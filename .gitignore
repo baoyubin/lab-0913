@@ -1,0 +1,24 @@
+lab2
+lab3
+ddqn
+Multi-Agent-Mec_Offloading-Use_DRL-main
+network_params
+Algorithm
+plot_result
+## 出租车总数据
+Taxi/taxi_number
+## 实验数据集 0425
+Taxi/real_time load-640
+Taxi/real_time load-790
+Taxi/real_time load-950
+Taxi/real_time load-1050
+Bus/real_time_bus_ori_0913
+*.txt
+
+## 实验数据集
+Taxi/taxi_demo
+Bus/bus_vehicleNum
+Bus/real_time_bus
+
+## 数据集
+*.tar.gz
