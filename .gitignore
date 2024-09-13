@@ -18,7 +18,10 @@ Bus/real_time_bus_ori_0913
 ## 实验数据集
 Taxi/taxi_demo
 Bus/bus_vehicleNum
-Bus/real_time_bus
 
 ## 数据集
 *.tar.gz
+
+##
+*.svg
+*.xml
