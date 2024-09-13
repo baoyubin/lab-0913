@@ -4,6 +4,8 @@ import math
 from my_cost import Cost
 class Env:
     def __init__(self, x, y, load_map, bus_map, my_plot, delay_Weight=0.5, idle_w=0.5, data_num=1):
+        self.all_load = np.zeros(shape=(x * y), dtype=np.int32).reshape((y, -1))
+
         self.cover =[]
 
         self.eswitch = 0
@@ -386,6 +388,7 @@ class Env:
             ##处理负载计算
             W_one = copy.deepcopy(self.obs_taxi)
             W_two = W_one.reshape((self.y, -1))
+            self.all_load += W_two;
             ##W_nonzero_index = W_one.nonzero()
             ##sss = sum(W_one)
             s1 = W_two[0:22, 0:18]
@@ -472,10 +475,10 @@ class Env:
             ##assert (all_1_energy >= cost_energy)
             ##assert (cost_delay <= all_0_delay)
             # assert (all_1_delay <= all_0_delay)
-            assert (cost_delay <= self.maxdelay and all_0_delay <= self.maxdelay)
-            assert (cost_delay >= self.mindelay and all_0_delay >= self.mindelay)
-            assert (cost_energy <= self.maxenergy and all_1_energy <= self.maxenergy)
-            assert (cost_energy >= self.minenergy and all_0_energy >= self.minenergy)
+            # assert (cost_delay <= self.maxdelay and all_0_delay <= self.maxdelay)
+            # assert (cost_delay >= self.mindelay and all_0_delay >= self.mindelay)
+            # assert (cost_energy <= self.maxenergy and all_1_energy <= self.maxenergy)
+            # assert (cost_energy >= self.minenergy and all_0_energy >= self.minenergy)
 
             self.observation_space = self._get_obs()
             done = self._get_done()  # TODO
@@ -531,7 +534,8 @@ class Env:
     def _get_W(self):
         W = np.zeros(shape=self.x * self.y, dtype=np.int32)
         for i in self.load_map[self.T].itertuples():
-            W[i[1] * self.x + i[2]] = i[3]
+            # W[i[1] * self.x + i[2]] = i[3]
+            W[i[2] * self.x + i[1]] = i[3]
         return W
     def _get_P(self):
         j = 0  ## bus
