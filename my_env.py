@@ -1,39 +1,50 @@
 import numpy as np
 import copy
 import math
+
+from MapConfig import MapConfig
 from my_cost import Cost
 class Env:
     def __init__(self, x, y, load_map, bus_map, my_plot, delay_Weight=0.5, idle_w=0.5, data_num=1):
         self.all_load = np.zeros(shape=(x * y), dtype=np.int32).reshape((y, -1))
+        self.mapConfig = MapConfig()
+        self.s = 4
+        # 基本参数
+        # 频率
+        self.Hz = 1
+        self.kHz = 1000 * self.Hz
+        self.mHz = 1000 * self.kHz
+        self.GHz = 1000 * self.mHz
+
+        self.nor = 10 ** (-7)
+        self.nor1 = 10 ** 19
+
+        # 数据大小
+        self.bit = 1
+        self.B = 8 * self.bit
+        self.KB = 1024 * self.B
+        self.MB = 1024 * self.KB
+
 
         self.cover =[]
 
         self.eswitch = 0
-        self.ecdidle = 30
-        self.busidle = 10
+        self.ecdidle = 83
+        self.busidle = 83
         self.opentime = 10
-
+        self.bus_bound = 4
         self.x = x
         self.y = y
         self.T = 0
         self.cost_func = Cost()
-        # self.ae = 0.001
-        # self.at = 10
 
-        # self.ae = 0.003
-        # self.at = 1
         ##结果
-        self.g_bus = 4.11 * (3 * 10 ** 2 / (4 * math.pi * 915 * 0.75)) ** (2.8)
-        self.g_mec = 4.11 * (3 * 10 ** 2 / (4 * math.pi * 915 * 2.5)) ** (2.8)
-        self.g_bus = 4.11 * (3 * 10 ** 2 / (4 * math.pi * 915 * 1250)) ** (2.8)
-        self.g_mec = 4.11 * (3 * 10 ** 2 / (4 * math.pi * 915 * 2500)) ** (2.8)
+        self.g_bus = 4.11 * (3 * 10 ** 2 / (4 * math.pi * 915 * self.bus_bound*self.mapConfig.gripAc)) ** (2.8)
+        self.g_mec = 4.11 * (3 * 10 ** 2 / (4 * math.pi * 915 * 2 * self.bus_bound*self.mapConfig.gripAc)) ** (2.8)
         self.maxload = 0
 
 
-        # self.maxdelay = 1.5
-        # self.mindelay = 0
-        # self.maxenergy = 700
-        # self.minenergy = 200 #论文结果
+
         self.ae = 0.001
         self.at = 5
         self.maxdelay = 1.5 #1.5
@@ -41,19 +52,14 @@ class Env:
         self.maxenergy = 400 #400
         self.minenergy = 140 #论文结果2
 
-        # self.maxdelay = 1.5
-        # self.mindelay = 0
-        # self.maxenergy = 500
-        # self.minenergy = 140  # 论文结果2 对比能耗实验
-
         ##plot
         self.my_plot = my_plot
         self.rw_local = 0
 
-        #busbound=5
+        # busbound=5
         self.bus_num = 10
         self.action_num = 10
-        self.bus_bound = 6
+
 
         self.bus_map = bus_map
         self.load_map = load_map
@@ -64,15 +70,13 @@ class Env:
         self.idle_w = idle_w
 
 
-        ## HZ 10 * 10**6 原来的 20mhz 20mhz
-        self.B_bus = 20 * 10**6
-        self.B_ecd = 20 * 10**6
+        self.B_bus = 20 * self.mHz
+        self.B_ecd = 20 * self.mHz
         self.B_cloud = self.B_ecd
 
-        ## HZ 5*10**9 原来的 10 30
-        self.BUS_CPU_frequency = 10 * 10**9
-        self.ECD_CPU_frequency = 20 * 10**9
-        self.Cloud_CPU_frequency = 20 * 10**9
+        self.BUS_CPU_frequency = 10 * self.GHz
+        self.ECD_CPU_frequency = 20 * self.GHz
+        self.Cloud_CPU_frequency = 20 * self.GHz
 
         self.cost_place = 0
 
@@ -82,8 +86,8 @@ class Env:
         self.data_num = data_num
         self.service_rate = 100
         self.bus_max = 100 ## 真实队列为*datanum
-        self.P_bus = 25 ##W
-        self.P_ecd = 50
+        self.P_bus = 156 ##W
+        self.P_ecd = 312
         self.observation_space = dict(
             {
                "taxi": np.zeros(shape=(self.x*self.y), dtype=np.int32), ##environment
@@ -388,27 +392,24 @@ class Env:
             ##处理负载计算
             W_one = copy.deepcopy(self.obs_taxi)
             W_two = W_one.reshape((self.y, -1))
-            self.all_load += W_two;
-            ##W_nonzero_index = W_one.nonzero()
-            ##sss = sum(W_one)
-            s1 = W_two[0:22, 0:18]
-            s2 = W_two[22:, 0:18]
-            s3 = W_two[0:22:, 18:]
-            s4 = W_two[22::, 18:]
-            ##sum(map(sum, s1))
+            self.all_load += W_two
+
             self.my_plot.load_num.append(sum(W_one))
             sum_load = sum(W_one)
-            ## 无用
-            # n_all_0_delay, n_all_0_energy = self._get_cost_ecd(sum_load)
 
-            ## 延迟为每个任务的平均延迟，能耗为总能耗
-            s1_0_delay, s1_0_energy = self._get_cost_ecd(sum(sum(s1)))
-            s2_0_delay, s2_0_energy = self._get_cost_ecd(sum(sum(s2)))
-            s3_0_delay, s3_0_energy = self._get_cost_ecd(sum(sum(s3)))
-            s4_0_delay, s4_0_energy = self._get_cost_ecd(sum(sum(s4)))
-            all_0_delay = (s1_0_delay * sum(sum(s1)) + s2_0_delay * sum(sum(s2)) + s3_0_delay * sum(
-                sum(s3)) + s4_0_delay * sum(sum(s4))) / sum(W_one)
-            all_0_energy = (s1_0_energy + s4_0_energy + s3_0_energy + s2_0_energy)
+            all_0_delay, all_0_energy = self.compute_area(W_two, sum_load)
+            # s1 = W_two[0:22, 0:22]
+            # s2 = W_two[22:, 0:22]
+            # s3 = W_two[0:22:, 22:]
+            # s4 = W_two[22::, 22:]
+            # ## 延迟为每个任务的平均延迟，能耗为总能耗
+            # s1_0_delay, s1_0_energy = self._get_cost_ecd(sum(sum(s1)))
+            # s2_0_delay, s2_0_energy = self._get_cost_ecd(sum(sum(s2)))
+            # s3_0_delay, s3_0_energy = self._get_cost_ecd(sum(sum(s3)))
+            # s4_0_delay, s4_0_energy = self._get_cost_ecd(sum(sum(s4)))
+            # all_0_delay = (s1_0_delay * sum(sum(s1)) + s2_0_delay * sum(sum(s2)) + s3_0_delay * sum(
+            #     sum(s3)) + s4_0_delay * sum(sum(s4))) / sum_load
+            # all_0_energy = (s1_0_energy + s4_0_energy + s3_0_energy + s2_0_energy)
             all_1_delay, all_1_energy = self.get_bus_allopen(sum_load)
 
             Bus_delay = 0
@@ -433,22 +434,18 @@ class Env:
                     Bus_delay += delay * around_load / sum_load
                     Bus_energy += energy
                 self.my_plot.around_list.append(around_load)
-            W_load = sum(W_one.flatten())
-
-            s1 = W_two[0:22, 0:18]
-            s2 = W_two[22:, 0:18]
-            s3 = W_two[0:22:, 18:]
-            s4 = W_two[22::, 18:]
-            s1_0_delay, s1_0_energy = self._get_cost_ecd(sum(sum(s1)))
-            s2_0_delay, s2_0_energy = self._get_cost_ecd(sum(sum(s2)))
-            s3_0_delay, s3_0_energy = self._get_cost_ecd(sum(sum(s3)))
-            s4_0_delay, s4_0_energy = self._get_cost_ecd(sum(sum(s4)))
-            dqn_delay = (s1_0_delay * sum(sum(s1)) + s2_0_delay * sum(sum(s2)) + s3_0_delay * sum(
-                sum(s3)) + s4_0_delay * sum(sum(s4))) / sum(W_one)
-            dqn_energy = (s1_0_energy + s4_0_energy + s3_0_energy + s2_0_energy)
-            ## 无用
-            ## dqn_delay, dqn_energy = self._get_cost_ecd(W_load)
-            ## dqn_delay *= W_load / sum_load
+            # s1 = W_two[0:22, 0:22]
+            # s2 = W_two[22:, 0:22]
+            # s3 = W_two[0:22:, 22:]
+            # s4 = W_two[22::, 22:]
+            # s1_0_delay, s1_0_energy = self._get_cost_ecd(sum(sum(s1)))
+            # s2_0_delay, s2_0_energy = self._get_cost_ecd(sum(sum(s2)))
+            # s3_0_delay, s3_0_energy = self._get_cost_ecd(sum(sum(s3)))
+            # s4_0_delay, s4_0_energy = self._get_cost_ecd(sum(sum(s4)))
+            # dqn_delay = (s1_0_delay * sum(sum(s1)) + s2_0_delay * sum(sum(s2)) + s3_0_delay * sum(
+            #     sum(s3)) + s4_0_delay * sum(sum(s4))) / sum_load
+            # dqn_energy = (s1_0_energy + s4_0_energy + s3_0_energy + s2_0_energy)
+            dqn_delay, dqn_energy = self.compute_area(W_two, sum_load)
 
             cost_delay = dqn_delay + Bus_delay
             cost_energy = dqn_energy + Bus_energy
@@ -513,24 +510,6 @@ class Env:
             W_two[bound_left_x:bound_right_x, bound_left_y:bound_right_y] = 0
         return around
 
-    # def get_around(self, index, W_two):
-    #     x = int(index / self.x)
-    #     y = index % self.x
-    #     if y == 0 and x == 0:
-    #         around = copy.deepcopy(W_two[x:(x + 2), y:(y + 2)])
-    #         W_two[x:(x + 2), y:(y + 2)] = 0
-    #         return around
-    #     elif y == 0:
-    #         around = copy.deepcopy(W_two[(x - 1):(x + 2), y:(y + 2)])
-    #         W_two[(x - 1):(x + 2), y:(y + 2)] = 0
-    #         return around
-    #     elif x == 0: ##右边越界自动处理
-    #         around = copy.deepcopy(W_two[x:(x + 2), (y - 1):(y + 2)])
-    #         W_two[x:(x + 2), (y - 1):(y + 2)] = 0
-    #         return around
-    #     around = copy.deepcopy(W_two[(x - 1):(x + 2), (y - 1):(y + 2)])
-    #     W_two[(x - 1):(x + 2), (y - 1):(y + 2)] = 0
-    #     return around
     def _get_W(self):
         W = np.zeros(shape=self.x * self.y, dtype=np.int32)
         for i in self.load_map[self.T].itertuples():
@@ -550,13 +529,11 @@ class Env:
         W_one = copy.deepcopy(self.obs_taxi)
         W_two = W_one.reshape((self.y, -1))
 
-        all = sum(W_one)
         all_1_delay = 0
         all_1_energy = 0
         for index in np.arange(10):
             around_1 = self.get_around(self.obs_bus[index], W_two, self.bus_bound, True)
             around_load_1 = sum(around_1.flatten())
-
             if (around_load_1 > self.bus_max):  # TODO
                 t = around_load_1 - self.bus_max
                 around_load_1 = self.bus_max
@@ -564,114 +541,81 @@ class Env:
                 x = int(bindex / self.x)
                 y = bindex % self.x
                 W_two[x, y] = t
-            ## 队列上限
-            # assert around_load_1 <= self.bus_max
             delay, energy = self._get_cost_bus(around_load_1)
             all_1_delay += delay * around_load_1 / sum_load
             all_1_energy += energy
-        eee = all - sum(W_one)
-        self.cover.append(eee)
-        s1 = W_two[0:22, 0:18]
-        s2 = W_two[22:, 0:18]
-        s3 = W_two[0:22:, 18:]
-        s4 = W_two[22::, 18:]
-        s1_0_delay, s1_0_energy = self._get_cost_ecd(sum(sum(s1)))
-        s2_0_delay, s2_0_energy = self._get_cost_ecd(sum(sum(s2)))
-        s3_0_delay, s3_0_energy = self._get_cost_ecd(sum(sum(s3)))
-        s4_0_delay, s4_0_energy = self._get_cost_ecd(sum(sum(s4)))
-        new_all_0_delay = (s1_0_delay * sum(sum(s1)) + s2_0_delay * sum(sum(s2)) + s3_0_delay * sum(
-            sum(s3)) + s4_0_delay * sum(sum(s4))) / sum(W_one)
-        new_all_0_energy = (s1_0_energy + s4_0_energy + s3_0_energy + s2_0_energy)
-
-        ## 无用 原来只有一个边缘服务器
-        # W_load = sum(W_one.flatten())
-        # delay_1, energy_1 = self._get_cost_ecd(W_load)
-        # delay_1 *= W_load / sum_load
+        eee = sum_load - sum(W_one)
+        if (len(self.cover) <= 720):
+            self.cover.append(eee/sum_load)
+        # s1 = W_two[0:22, 0:18]
+        # s2 = W_two[22:, 0:18]
+        # s3 = W_two[0:22:, 18:]
+        # s4 = W_two[22::, 18:]
+        # s1_0_delay, s1_0_energy = self._get_cost_ecd(sum(sum(s1)))
+        # s2_0_delay, s2_0_energy = self._get_cost_ecd(sum(sum(s2)))
+        # s3_0_delay, s3_0_energy = self._get_cost_ecd(sum(sum(s3)))
+        # s4_0_delay, s4_0_energy = self._get_cost_ecd(sum(sum(s4)))
+        # new_all_0_delay = (s1_0_delay * sum(sum(s1)) + s2_0_delay * sum(sum(s2)) + s3_0_delay * sum(
+        #     sum(s3)) + s4_0_delay * sum(sum(s4))) / sum_load
+        # new_all_0_energy = (s1_0_energy + s4_0_energy + s3_0_energy + s2_0_energy)
+        new_all_0_delay, new_all_0_energy = self.compute_area(W_two, sum_load)
 
         all_1_delay += new_all_0_delay
         all_1_energy += new_all_0_energy
         return all_1_delay, all_1_energy
 
-    def step_second(self, action):
-        #TODO 遍历栅格
-        self.rw_local = 0
-        rw_all_0 = 0
-        rw_all_1 = 0
-        opentime = 1
-        for t in range(opentime):
-            ##read the data
-            self.obs_taxi = self._get_W()
 
-            self.obs_bus = self._get_P()
+    def compute_area(self, W_two, sum_load):
+        s = self.s
+        ## 只支持4个
+        rows, cols = W_two.shape
+        num = int(s/2)
+        block_size = max(rows, cols) // num
+        delays = []
+        energies = []
+        total_delay = 0
+        load = 0
+        t = 0
+        for i in range(num):
+            for j in range(num):
+                start_row = i * block_size
+                if (i == num-1):
+                    end_row = rows
+                else:
+                    end_row = start_row + block_size
 
-            self.obs_action = action
+                start_col = j * block_size
+                if (j == num - 1):
+                    end_col = cols
+                else:
+                    end_col = min(start_col + block_size, cols)
+                sub_matrix = W_two[start_row:end_row, start_col:end_col]
+                delay, energy = self._get_cost_ecd(sum(sum(sub_matrix)))
+                delays.append(delay)
+                total_delay = total_delay + delay * sum(sum(sub_matrix))
+                energies.append(energy)
+                load += sum(sum(sub_matrix))
+                t += 1
+        # s1 = W_two[0:22, 0:22]
+        # s2 = W_two[22:, 0:22]
+        # s3 = W_two[0:22, 22:]
+        # s4 = W_two[22:, 22:]
+        # print(sum(sum(s2)))
+        # ## 延迟为每个任务的平均延迟，能耗为总能耗
+        # s1_0_delay, s1_0_energy = self._get_cost_ecd(sum(sum(s1)))
+        # s2_0_delay, s2_0_energy = self._get_cost_ecd(sum(sum(s2)))
+        # s3_0_delay, s3_0_energy = self._get_cost_ecd(sum(sum(s3)))
+        # s4_0_delay, s4_0_energy = self._get_cost_ecd(sum(sum(s4)))
+        # all_0_delay = (s1_0_delay * sum(sum(s1)) + s2_0_delay * sum(sum(s2)) + s3_0_delay * sum(
+        #     sum(s3)) + s4_0_delay * sum(sum(s4))) / sum_load
+        # all_0_energy = (s1_0_energy + s4_0_energy + s3_0_energy + s2_0_energy)
+        # if (load != sum_load): 不会相等
+        #     print(sum_load - load)
+        assert t == s
+        average_delay = total_delay / sum_load
+        total_energy = sum(energies)
 
-            ##处理负载计算
-            W_one = copy.deepcopy(self.obs_taxi)
-            W_two = W_one.reshape((self.y, -1))
-            ##W_nonzero_index = W_one.nonzero()
-            self.my_plot.load_num.append(sum(W_one))
-            sum_load = sum(W_one)
-            all_0_delay, all_0_energy = self._get_cost_ecd(sum_load)
 
-            all_1_delay, all_1_energy = self.get_bus_allopen(sum_load)
+        return average_delay, total_energy
 
-            Bus_delay = 0
-            Bus_energy = 0
-
-            self.cost_place = 0
-
-            for index, act in enumerate(action):  # TODO
-                around_load = 0
-                if act:
-                    around = self.get_around(self.obs_bus[index], W_two, self.bus_bound, True)
-                    around_load = sum(around.flatten())
-                    ###
-                    # t = 0
-                    # if (around_load > 200):  #TODO
-                    #     t = around_load - 200
-                    #     around_load = 200
-                    #     W_one[self.obs_bus[index]] = t
-                    #     self.rw_local += 1
-                    ###
-
-                    delay, energy = self._get_cost_bus(around_load)
-                    Bus_delay += delay * around_load / sum_load
-                    Bus_energy += energy
-                self.my_plot.around_list.append(around_load)
-            W_load = sum(W_one.flatten())
-            dqn_delay, dqn_energy = self._get_cost_ecd(W_load)
-            dqn_delay *= W_load / sum_load
-
-            cost_delay = dqn_delay + Bus_delay
-            cost_energy = dqn_energy + Bus_energy
-            reward = self._get_reward(cost_delay, all_0_delay, all_1_delay, cost_energy, all_0_energy,
-                                      all_1_energy)  # TODO
-
-            self.my_plot.cost_delay.append([cost_delay, all_1_delay, all_0_delay])
-            self.my_plot.cost_energy.append([cost_energy, all_1_energy, all_0_energy])
-
-            self.rw_local += reward
-
-            rw_all_0 += -self.delay_Weight * (all_0_delay - all_1_delay) / (all_0_delay - all_1_delay)
-            rw_all_1 += -self.energy_Weight * (all_1_energy - all_0_energy) / (all_1_energy - all_0_energy)
-
-            assert (all_1_energy >= all_0_energy)
-            ##assert (all_1_energy >= cost_energy)
-            assert (cost_delay <= all_0_delay)
-            assert (all_1_delay <= all_0_delay)
-
-            self.observation_space = self._get_obs()
-            done = self._get_done()  # TODO
-            info = None  # TODO
-            if done:
-                return copy.deepcopy(self.observation_space), self.rw_local / opentime, done, info
-            ##print(self.cost_place)
-            self.T += 1
-
-        self.my_plot.rw_all_0.append(rw_all_0 / opentime)
-        self.my_plot.rw_all_1.append(rw_all_1 / opentime)
-        self.my_plot.reward_list.append(self.rw_local / opentime)
-        return copy.deepcopy(self.observation_space), self.rw_local / opentime, done, info
-        ##return copy.deepcopy(self.observation_space), reward, done, info
 

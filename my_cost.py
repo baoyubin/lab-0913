@@ -6,19 +6,17 @@ class Cost:
 
 
         ## W
-        self.P_t = 0.25 #0.2
+        self.P_t = 0.25
         ##结果
-        self.N = 2 * 10 ** (-18)
-        self.N = 1 * 10 ** (-24)
+        self.N = 10 ** (-14)
 
         ##self.g = 127 + 30 * math.log(1, 2)D
-        self.g = 10 ** (-6)
 
         ## bit 1mb
         self.Data_bit = 1 * 10 ** 6
 
         ## CPU cycles per bit
-        self.computational_intensity = 30 #30
+        self.computational_intensity = 30
         self.computational_data_cycle = self.computational_intensity * self.Data_bit
 
     ## bit/s
