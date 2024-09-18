@@ -34,7 +34,7 @@ class Env:
         self.ecdidle = 83
         self.busidle = 83
         self.opentime = 10
-        self.bus_bound = 5
+        self.bus_bound = 6
         self.x = x
         self.y = y
         self.T = 0
@@ -326,7 +326,7 @@ class Env:
         return ra
 
 
-    def _get_reward(self, cost_delay, all_0_delay, all_1_delay, cost_energy, all_0_energy, all_1_energy, action): #TODO
+    def _get_reward(self, cost_delay, all_0_delay, all_1_delay, cost_energy, all_0_energy, all_1_energy, action, topk_delay, topk_energy): #TODO
         self.my_plot.avg_delay.append(cost_delay)
         ##return (cost_offalltoecd - obs_offloadtoBus - obs_offloadtoEcd) / cost_offalltoecd - self.rw_local / 10 * 0.3
         ##return (cost_offalltoecd - obs_offloadtoBus - obs_offloadtoEcd)
@@ -369,13 +369,14 @@ class Env:
         rew = - self.delay_Weight * cost_delay * self.at - self.energy_Weight * cost_energy * self.ae
         r0 = - self.delay_Weight * all_0_delay * self.at - self.energy_Weight * all_0_energy * self.ae
         r1 = - self.delay_Weight * all_1_delay * self.at - self.energy_Weight * all_1_energy * self.ae
+        r2 = - self.delay_Weight * topk_delay * self.at - self.energy_Weight * topk_energy * self.ae
         ## todo 改成 min=0 max=x，后续根据值进行更新最大值
         # if rew > 0:
         #     return 0
         ## assert rew > 0
         self.my_plot.maxmindelay.append(delay)
         self.my_plot.maxminenergy.append(energy)
-        return rew, r0, r1
+        return rew, r0, r1, r2
 
     ##all_1 不一定是最小延迟
     def sigmoid(self, X, useStatus):
@@ -415,12 +416,21 @@ class Env:
             sum_load = sum(W_one)
 
             all_0_delay, all_0_energy = self.compute_area(W_two, sum_load)
-            all_1_delay, all_1_energy = self.get_bus_allopen(sum_load)
+            all_1_delay, all_1_energy, sorted_indices = self.get_bus_allopen(sum_load)
+
+
+
+            topk = sum(action)
+            new_list = [0] * 10
+            for i in range(topk):
+                new_list[sorted_indices[i]] = 1
+            topk_delay, topk_energy = self.get_bus_topk(sum_load, np.array(new_list))
 
             Bus_delay = 0
             Bus_energy = 0
 
             self.cost_place = 0
+
             for index, act in enumerate(action):  # TODO
                 around_load = 0
                 if act:
@@ -445,9 +455,15 @@ class Env:
             cost_energy = dqn_energy + Bus_energy
             if (t==0):
                 cost_energy += num * self.eswitch
-            reward,rw_all_0,rw_all_1 = self._get_reward(cost_delay, all_0_delay, all_1_delay, cost_energy, all_0_energy,
-                                      all_1_energy, action)  # TODO
 
+
+            reward, rw_all_0, rw_all_1, rw_topk = self._get_reward(cost_delay, all_0_delay, all_1_delay, cost_energy, all_0_energy,
+                                      all_1_energy, action, topk_delay, topk_energy)  # TODO
+
+            if (reward > rw_topk):
+                reward = 20 * (reward - rw_topk)
+            else:
+                reward = 20 * (reward - rw_topk)
             self.my_plot.cost_delay.append([cost_delay, all_1_delay, all_0_delay])
             self.my_plot.cost_energy.append([cost_energy, all_1_energy, all_0_energy])
 
@@ -523,9 +539,11 @@ class Env:
         all_1_delay = 0
         all_1_energy = 0
         random_indices = np.random.permutation(10)
+        load_action = []
         for index in random_indices:
             around_1 = self.get_around(self.obs_bus[index], W_two, self.bus_bound, True)
             around_load_1 = sum(around_1.flatten())
+            load_action.append(around_load_1)
             if (around_load_1 > self.bus_max):  # TODO
                 t = around_load_1 - self.bus_max
                 around_load_1 = self.bus_max
@@ -544,8 +562,40 @@ class Env:
         new_all_0_delay, new_all_0_energy = self.compute_area(W_two, sum_load)
         all_1_delay += new_all_0_delay
         all_1_energy += new_all_0_energy
-        return all_1_delay, all_1_energy
 
+        sorted_indices = [idx for idx, val in sorted(enumerate(load_action), key=lambda x: x[1],reverse=True)]
+        return all_1_delay, all_1_energy,sorted_indices
+
+    def get_bus_topk(self,  sum_load, action):
+        W_one = copy.deepcopy(self.obs_taxi)
+        W_two = W_one.reshape((self.y, -1))
+        Bus_delay = 0
+        Bus_energy = 0
+        for index, act in enumerate(action):  # TODO
+            around_load = 0
+            if act:
+                around = self.get_around(self.obs_bus[index], W_two, self.bus_bound, True)
+                around_load = sum(around.flatten())
+                ###
+                if (around_load > self.bus_max):  # TODO
+                    t = around_load - self.bus_max
+                    bindex = self.obs_bus[index]
+                    x = int(bindex / self.x)
+                    y = bindex % self.x
+                    W_two[x, y] = t
+                    around_load = self.bus_max
+                ###
+                delay, energy = self._get_cost_bus(around_load)
+                Bus_delay += delay * around_load / sum_load
+                Bus_energy += energy
+            self.my_plot.around_list.append(around_load)
+        dqn_delay, dqn_energy = self.compute_area(W_two, sum_load)
+
+        cost_delay = dqn_delay + Bus_delay
+        cost_energy = dqn_energy + Bus_energy
+
+
+        return cost_delay, cost_energy
 
     def compute_area(self, W_two, sum_load):
         s = self.s
