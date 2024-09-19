@@ -34,15 +34,15 @@ class Env:
         self.ecdidle = 83
         self.busidle = 83
         self.opentime = 10
-        self.bus_bound = 8
+        self.bus_bound = 6
         self.x = x
         self.y = y
         self.T = 0
         self.cost_func = Cost()
 
         ##结果
-        self.g_bus = 4.11 * (3 * 10 ** 2 / (4 * math.pi * 915 * self.bus_bound*self.mapConfig.gripAc)) ** (2.8)
-        self.g_mec = 4.11 * (3 * 10 ** 2 / (4 * math.pi * 915 * 2 * self.bus_bound*self.mapConfig.gripAc)) ** (2.8)
+        self.g_bus = 4.11 * (3 * 10 ** 2 / (4 * math.pi * 915 * self.bus_bound/2 *self.mapConfig.gripAc)) ** (2.8)
+        self.g_mec = 4.11 * (3 * 10 ** 2 / (4 * math.pi * 915 * 6 * self.mapConfig.gripAc)) ** (2.8)
         self.maxload = 0
 
 
@@ -89,7 +89,7 @@ class Env:
         self.service_rate = 40
         self.bus_max = 40 ## 真实队列为*datanum
         self.P_bus = 156 ##W
-        self.P_ecd = 256
+        self.P_ecd = 200
         self.observation_space = dict(
             {
                "taxi": np.zeros(shape=(self.x*self.y), dtype=np.int32), ##environment
