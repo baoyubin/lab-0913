@@ -9,6 +9,7 @@ class My_plot:
         self.maxmindelay = []
         self.maxminenergy = []
 
+        self.system_cost = []
         self.loss_plot = []
         self.around_list = []
         self.load_num = []

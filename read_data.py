@@ -4,8 +4,12 @@ import transbigdata as tbd
 import pandas as pd
 import numpy as np
 
+from MapConfig import MapConfig
+
+
 def read_taxi(load_map, bounds, params):
-    data = pd.read_csv('./Taxi/real_time load/taxi.csv')
+    map = MapConfig()
+    data = pd.read_csv('./Taxi/real_time load' + map.taxi_path + 'taxi.csv')
     time = pd.to_datetime(data['time'])
     data = data.set_index(time)
     dataset = pd.DataFrame(data.resample('1T'))

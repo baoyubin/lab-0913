@@ -11,12 +11,17 @@ class Cost:
         self.N = 10 ** (-14)
 
         ##self.g = 127 + 30 * math.log(1, 2)D
+        # 数据大小
+        self.bit = 1
+        self.B = 8 * self.bit
+        self.KB = 1024 * self.B
+        self.MB = 1024 * self.KB
 
-        ## bit 1mb
-        self.Data_bit = 1 * 10 ** 6
+        ## bit
+        self.Data_bit = 10 * self.KB
 
         ## CPU cycles per bit
-        self.computational_intensity = 30
+        self.computational_intensity = 50
         self.computational_data_cycle = self.computational_intensity * self.Data_bit
 
     ## bit/s

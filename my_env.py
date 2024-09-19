@@ -34,7 +34,7 @@ class Env:
         self.ecdidle = 83
         self.busidle = 83
         self.opentime = 10
-        self.bus_bound = 6
+        self.bus_bound = 8
         self.x = x
         self.y = y
         self.T = 0
@@ -72,12 +72,12 @@ class Env:
         self.idle_w = idle_w
 
 
-        self.B_bus = 20 * self.mHz
-        self.B_ecd = 20 * self.mHz
+        self.B_bus = 100 * self.mHz
+        self.B_ecd = 100 * self.mHz
         self.B_cloud = self.B_ecd
 
-        self.BUS_CPU_frequency = 10 * self.GHz
-        self.ECD_CPU_frequency = 20 * self.GHz
+        self.BUS_CPU_frequency = 5 * self.GHz
+        self.ECD_CPU_frequency = 10 * self.GHz
         self.Cloud_CPU_frequency = 20 * self.GHz
 
         self.cost_place = 0
@@ -86,10 +86,10 @@ class Env:
         self.queue = []
         self.T_FINISH = 500
         self.data_num = data_num
-        self.service_rate = 20
-        self.bus_max = 20 ## 真实队列为*datanum
+        self.service_rate = 40
+        self.bus_max = 40 ## 真实队列为*datanum
         self.P_bus = 156 ##W
-        self.P_ecd = 312
+        self.P_ecd = 256
         self.observation_space = dict(
             {
                "taxi": np.zeros(shape=(self.x*self.y), dtype=np.int32), ##environment
@@ -152,7 +152,7 @@ class Env:
         tran_energy = cost_trantoBus * self.cost_func.P_t * off_sum
 
         energy = self.busidle + (self.P_bus - self.busidle) * off_sum / self.bus_max
-        return cost_trantoBus + computingDelay_Bus, tran_energy + energy
+        return cost_trantoBus + computingDelay_Bus, energy
 
     def cloud_get_ecd(self, load_sum):
         allsum = load_sum * self.data_num
@@ -208,9 +208,8 @@ class Env:
 
     def new_get_ecd(self, load_sum):
         allsum = load_sum * self.data_num
-        cost = self.ecdidle #50
         if (load_sum == 0):
-            return 0, 0 + cost
+            return 0, 0 + self.ecdidle
         cost_queue = 0
         load_sum *= self.data_num
         ## cost_trantoEcd为平均传输时间
@@ -243,44 +242,8 @@ class Env:
         computingDelay_ECD, exe_energy = self.ecd_not_cloud(allsum)
         delay = computingDelay_ECD + cost_trantoEcd
         energy = self.ecdidle + (self.P_ecd - self.ecdidle) * allsum / self.service_rate
-        return delay + cost_queue, tran_energy + energy
+        return delay + cost_queue, energy
 
-    def cloud_get_ecd2(self, load_sum):
-        allsum = load_sum * self.data_num
-        cost = 238
-        if (load_sum == 0):
-            return 0, 0 + cost
-        ## cost_trantoEcd为平均传输时间
-        cost_trantoEcd = self.cost_func.get_transmission_delay(self.B_ecd, allsum, self.g_mec)
-        ## 总传输时间 = 卸载任务数量 * 每个任务传输延迟 cost_trantoEcd * load_sum
-        ## 总传输能耗 tran_energy = cost_trantoEcd * self.cost_func.P_t * load_sum
-        tran_energy = cost_trantoEcd * self.cost_func.P_t * load_sum
-        ## 云
-        tran_cloud = 0
-        cloud_size = 0
-        ecd_size = allsum
-        if (load_sum > self.service_rate):
-                cloud_size = allsum - self.service_rate
-                tran_cloud = 3 * (cloud_size) / self.service_rate
-                ecd_size = self.service_rate
-        computingDelay_ECD, exe_energy = self.ecd_not_cloud(ecd_size)
-
-        ### 调试用
-        tt = (tran_cloud * cloud_size + computingDelay_ECD * ecd_size) / (allsum)
-        aa, ee = self.ecd_not_cloud(allsum)
-        # assert (cloud_size+ecd_size) == allsum
-        # if (aa > tt):
-        #     print(aa)
-        #     print(tt)
-        #     print(allsum)
-        #     print(cloud_size)
-        # assert aa <= tt
-        ### 修改的
-        delay = (cost_trantoEcd * allsum + tran_cloud * cloud_size + computingDelay_ECD * ecd_size) / allsum
-        # delay = computingDelay_ECD + cost_trantoEcd
-        # cost_queue = (load_sum / self.service_rate * (self.service_rate - load_sum)) / 100
-        # return computingDelay_ECD + cost_trantoEcd + cost_queue, tran_energy
-        return delay, (cost+0.5*cost*ecd_size/self.service_rate+0.1*cost*cloud_size/self.service_rate)
     def ecd_not_cloud(self, allsum):
         ## (平均计算延迟)计算延迟 =  每个任务计算延迟
         computingDelay_ECD = self.cost_func.get_computation_delay(allsum, self.ECD_CPU_frequency)
@@ -288,31 +251,6 @@ class Env:
         return computingDelay_ECD, exe_energy
     def _get_cost_ecd(self, load_sum):
         return self.new_get_ecd(load_sum)
-        return self.cloud_get_ecd(load_sum=load_sum)
-        # self.maxload = max(self.maxload,load_sum) ## 246
-        # self.cloud_get_ecd(load_sum)
-        allsum = load_sum * self.data_num
-        load_sum *= self.data_num
-        if(load_sum == 0):
-            return 0, 0
-        cost_queue = 0
-        ## cost_trantoEcd为平均传输时间
-        cost_trantoEcd = self.cost_func.get_transmission_delay(self.B_ecd, allsum, self.g_mec)
-        ## 总传输时间 = 卸载任务数量 * 每个任务传输延迟 cost_trantoEcd * load_sum
-        ## 总传输能耗 tran_energy = cost_trantoEcd * self.cost_func.P_t * load_sum
-        tran_energy = cost_trantoEcd * self.cost_func.P_t * allsum
-        if (load_sum > self.service_rate):
-            # 2 * self.service_rate - load_sum > 0
-            if 2 * self.service_rate - load_sum > 0:
-                cost_queue = (load_sum - self.service_rate) / (2 * self.service_rate * (2 * self.service_rate - load_sum))
-            else:
-                ecd_size = 2 * self.service_rate - 1
-                cost_queue = (ecd_size - self.service_rate) / (
-                        2 * self.service_rate * (2 * self.service_rate - ecd_size))
-                cloud_size = allsum - ecd_size
-                print("error:cost,queue")
-        computingDelay_ECD, exe_energy = self.ecd_not_cloud(allsum)
-        return computingDelay_ECD + cost_trantoEcd + cost_queue, tran_energy
 
     def _get_reward_s(self, cost_delay, all_0_delay, all_1_delay, cost_energy, all_0_energy, all_1_energy,
                     action):  # TODO
@@ -341,12 +279,12 @@ class Env:
         delay = (cost_delay - all_1_delay) / (all_0_delay - all_1_delay)
         energy = (cost_energy - all_0_energy) / (all_1_energy - all_0_energy)
 
-        min_delay = min(all_1_delay, all_0_delay, cost_delay)
-        min_energy = min(cost_energy, all_0_energy, all_1_energy)
-        max_energy = max(cost_energy, all_0_energy, all_1_energy)
-        max_delay = max(all_1_delay, all_0_delay, cost_delay)
-        delay = (cost_delay - min_delay) / (max_delay - min_delay)
-        energy = (cost_energy - min_energy) / (max_energy - min_energy)
+        # min_delay = min(all_1_delay, all_0_delay, cost_delay)
+        # min_energy = min(cost_energy, all_0_energy, all_1_energy)
+        # max_energy = max(cost_energy, all_0_energy, all_1_energy)
+        # max_delay = max(all_1_delay, all_0_delay, cost_delay)
+        # delay = (cost_delay - min_delay) / (max_delay - min_delay)
+        # energy = (cost_energy - min_energy) / (max_energy - min_energy)
         # delay = cost_delay
         # energy = cost_energy / 100
         ##assert delay > 0
@@ -354,25 +292,25 @@ class Env:
         ##delay = math.log(cost_delay, 10) / math.log(all_0_delay, 10)
         ##energy = math.log(cost_energy, 10) / math.log(all_1_energy, 10)
 
-        # delay = (cost_delay - all_1_delay) / (all_0_delay - all_1_delay)
-        # energy = (cost_energy - all_0_energy) / (all_1_energy - all_0_energy)
+        delay = (cost_delay - all_1_delay) / (all_0_delay - all_1_delay)
+        energy = (cost_energy - all_0_energy) / (all_1_energy - all_0_energy)
+
+        rew = - self.delay_Weight * delay - self.energy_Weight * energy
+        r1 = 0
+        r0 = 0
+        r2 = - self.delay_Weight * (topk_delay - all_1_delay) / (all_0_delay - all_1_delay) - self.energy_Weight * (topk_energy - all_0_energy) / (all_1_energy - all_0_energy)
+
+        # delay = (cost_delay - self.mindelay) / (self.maxdelay - self.mindelay)
+        # energy = (cost_energy - self.minenergy) / (self.maxenergy - self.minenergy)
 
 
-        # rew = - self.delay_Weight * delay - self.energy_Weight * energy
-
-
-
-        delay = (cost_delay - self.mindelay) / (self.maxdelay - self.mindelay)
-        energy = (cost_energy - self.minenergy) / (self.maxenergy - self.minenergy)
-        rew = (- self.delay_Weight * delay - self.energy_Weight * energy)
-        # rew = delay/energy
-        rew = - self.delay_Weight * cost_delay * self.at - self.energy_Weight * cost_energy * self.ae
-        r0 = - self.delay_Weight * all_0_delay * self.at - self.energy_Weight * all_0_energy * self.ae
-        r1 = - self.delay_Weight * all_1_delay * self.at - self.energy_Weight * all_1_energy * self.ae
-        r2 = - self.delay_Weight * topk_delay * self.at - self.energy_Weight * topk_energy * self.ae
-        ## todo 改成 min=0 max=x，后续根据值进行更新最大值
-        # if rew > 0:
-        #     return 0
+        # rew = - self.delay_Weight * cost_delay * self.at - self.energy_Weight * cost_energy * self.ae
+        # r0 = - self.delay_Weight * all_0_delay * self.at - self.energy_Weight * all_0_energy * self.ae
+        # r1 = - self.delay_Weight * all_1_delay * self.at - self.energy_Weight * all_1_energy * self.ae
+        # r2 = - self.delay_Weight * topk_delay * self.at - self.energy_Weight * topk_energy * self.ae
+        # rew = math.exp(- self.delay_Weight * cost_delay * self.at - self.energy_Weight * cost_energy * self.ae)
+        # r0 = math.exp(- self.delay_Weight * all_0_delay * self.at - self.energy_Weight * all_0_energy * self.ae)
+        # r1 = math.exp(- self.delay_Weight * all_1_delay * self.at - self.energy_Weight * all_1_energy * self.ae)
         ## assert rew > 0
         self.my_plot.maxmindelay.append(delay)
         self.my_plot.maxminenergy.append(energy)
@@ -397,6 +335,7 @@ class Env:
         rw_all_1 = 0
         opentime = self.opentime
         naction = self.obs_action
+        system_cost = 0
         num = 0
         for i in range(10):
             if naction[i] != action[i]:
@@ -453,17 +392,17 @@ class Env:
 
             cost_delay = dqn_delay + Bus_delay
             cost_energy = dqn_energy + Bus_energy
-            if (t==0):
-                cost_energy += num * self.eswitch
+            # if (t==0):
+            #     cost_energy += num * self.eswitch
 
 
             reward, rw_all_0, rw_all_1, rw_topk = self._get_reward(cost_delay, all_0_delay, all_1_delay, cost_energy, all_0_energy,
                                       all_1_energy, action, topk_delay, topk_energy)  # TODO
-
+            system_cost += -reward
             if (reward > rw_topk):
-                reward = 20 * (reward - rw_topk)
+                reward = 4 * (reward - rw_topk)
             else:
-                reward = 20 * (reward - rw_topk)
+                reward = 3 * (reward - rw_topk)
             self.my_plot.cost_delay.append([cost_delay, all_1_delay, all_0_delay])
             self.my_plot.cost_energy.append([cost_energy, all_1_energy, all_0_energy])
 
@@ -497,6 +436,7 @@ class Env:
         self.my_plot.rw_all_0.append(rw_all_0)
         self.my_plot.rw_all_1.append(rw_all_1)
         self.my_plot.reward_list.append(self.rw_local)
+        self.my_plot.system_cost.append(system_cost)
         return copy.deepcopy(self.observation_space), self.rw_local, done, info
 
     def action_space_sample(self):

@@ -6,9 +6,11 @@ import geopandas as gpd
 import numpy as np
 from transbigdata import sample_duration
 
+from MapConfig import MapConfig
+
 
 def show_taxidata(bounds,params):
-    path = 'Taxi/taxi_demo/'  # 文件夹目录
+    path = 'Taxi/taxi_demo-500/'  # 文件夹目录
     files = os.listdir(path)  # 得到文件夹下的所有文件名称\
     data_list = []
     for file in files:  # 遍历文件夹
@@ -23,7 +25,8 @@ def show_taxidata(bounds,params):
                      roundnum=3)
 
 def create_taxidata(bounds,params):
-    path = 'Taxi/taxi_demo/'  # 文件夹目录
+    map = MapConfig()
+    path = 'Taxi/taxi_demo' + map.taxi_path # 文件夹目录
     files = os.listdir(path)  # 得到文件夹下的所有文件名称\
     data_list = []
     for file in files:  # 遍历文件夹
@@ -50,7 +53,7 @@ def create_taxidata(bounds,params):
     data_all = pd.concat(data_list)
     data_all['geometry'] = tbd.grid_to_polygon([data_all['LONCOL'], data_all['LATCOL']], params)
     data_all = gpd.GeoDataFrame(data_all)
-    data_all.to_csv("Taxi/real_time load/taxi.csv", index=False)
+    data_all.to_csv("Taxi/real_time load" + map.taxi_path + "taxi.csv", index=False)
 
 def data_summary(data, col=['Vehicleid', 'Time'], show_sample_duration=False,
                  roundnum=4):
