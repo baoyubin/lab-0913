@@ -49,8 +49,8 @@ def plot_cost(map=None, ylab='Reward'):
     plt.rcParams['font.sans-serif'] = ['SimHei']  # 使用黑体字体
     plt.rcParams['axes.unicode_minus'] = False  # 正确显示负号
     plt.subplots_adjust(left=0.05, right=0.95)  #
-    plt.savefig( ylab + '.svg', format='svg')
     plt.xlabel('决策时隙')
+    plt.savefig(ylab + '.svg', format='svg')
     plt.show()
 def moving_average(data, window_size):
     """
@@ -136,7 +136,7 @@ def plot_cover(map, isSmooth=False, window_size=5, polyorder=3):
         plt.rcParams['axes.unicode_minus'] = False  # 正确显示负号
         plt.xlabel('迭代次数')
         plt.legend(handles=handles)
-        plt.savefig( '收敛.svg', format='svg')
+        plt.savefig('收敛.svg', format='svg')
         plt.show()
 def min_max_scaler(data,max_value,min_value):
     return [(x - min_value) / (max_value - min_value) for x in data]
