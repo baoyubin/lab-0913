@@ -13,7 +13,7 @@ from my_plot import My_plot
 
 
 def plot_default(map, ylab='Reward' ):
-    name = ['全部开启', '全部关闭', 'TOP-K', 'DQN-OD']
+    name = ['全部开启', '全部关闭', 'TOP-K', 'DQN-DD']
     colors = ['b', 'y', 'g', 'r']
     plt.plot(map[1],marker='d',label =name[0],color =colors[0])
     plt.plot(map[2],marker='>', label=name[1],color =colors[1])
@@ -29,7 +29,7 @@ def plot_default(map, ylab='Reward' ):
     plt.savefig(ylab+'.svg', format='svg')
     plt.show()
 def plot_cost(map=None, ylab='Reward'):
-    name = ['全部开启', '全部关闭', 'TOP-K', 'DQN-OD']
+    name = ['全部开启', '全部关闭', 'TOP-K', 'DQN-DD']
 
     markers = ['d', '>', '<', 'o']
     linestyles = [None, None, '--', None]
@@ -123,7 +123,7 @@ def plot_cover(map, isSmooth=False, window_size=5, polyorder=3):
             map[3] = savgol_filter(map[3], window_size, polyorder)
             map[2] = savgol_filter(map[2], window_size, polyorder)
             map[1] = savgol_filter(map[1], window_size, polyorder)
-        name = ['全部开启', '全部关闭', 'TOP-K','DQN-OD']
+        name = ['全部开启', '全部关闭', 'TOP-K','DQN-DD']
         colors = ['b', 'y', 'g', 'r']
         plt.plot(map[0], label=name[0], color=colors[0])
         plt.plot(map[1], label=name[1], color=colors[1])
