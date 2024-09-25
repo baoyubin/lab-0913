@@ -74,6 +74,7 @@ class Dqn(nn.Module):
     def forward(self, x):
         return self.net(x)
 
+    @torch.no_grad()
     def act(self, obs):
         obs_tensor = torch.as_tensor(obs, dtype=torch.float32)
         q_value = self(obs_tensor.unsqueeze(0))
