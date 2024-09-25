@@ -1,4 +1,5 @@
 import pickle
+import random
 
 import numpy as np
 from matplotlib import pyplot as plt
@@ -160,3 +161,41 @@ def keep(my_object,name):
 def load(name):
     with open(name, 'rb') as f:
         return pickle.load(f)
+
+def getDataWeight(self,name=None):
+    from more_itertools import chunked
+    smoothed_list = [sum(x) for x in chunked(self.system_cost, self.T + 1)]  ##一轮迭代的总奖励
+    smoothed_top_list = [sum(x) for x in chunked(self.top_cost, self.T + 1)]  ##一轮迭代的总奖励
+    smoothed_close_cost = [sum(x) for x in chunked(self.close_cost, self.T + 1)]  ##一轮迭代的总奖励
+    smoothed_open_cost = [sum(x) for x in chunked(self.open_cost, self.T + 1)]
+    difference_list = [b - a for a, b in zip(smoothed_list, smoothed_top_list)]
+    # 对差值列表进行排序，并获取排序后的索引
+    sorted_indices = sorted(range(len(difference_list)), key=lambda i: difference_list[i],reverse=True)
+
+    idx = random.randint(0, 20)
+
+    energy = [[item[0] for item in self.cost_energy[sorted_indices[idx] * 720:sorted_indices[idx] * 720 + 720]],
+              [item[1] for item in self.cost_energy[sorted_indices[idx] * 720:sorted_indices[idx] * 720 + 720]],
+              [item[2] for item in self.cost_energy[sorted_indices[idx] * 720:sorted_indices[idx] * 720 + 720]],
+              self.top_energy[sorted_indices[idx] * 720:sorted_indices[idx] * 720 + 720]]
+    delay = [[item[0] for item in self.cost_delay[sorted_indices[idx] * 720:sorted_indices[idx] * 720 + 720]],
+             [item[1] for item in self.cost_delay[sorted_indices[idx] * 720:sorted_indices[idx] * 720 + 720]],
+             [item[2] for item in self.cost_delay[sorted_indices[idx] * 720:sorted_indices[idx] * 720 + 720]],
+             self.top_delay[sorted_indices[idx] * 720:sorted_indices[idx] * 720 + 720]]
+    cost = [self.system_cost[sorted_indices[idx] * 72:sorted_indices[idx] * 72 + 72],
+            self.open_cost[sorted_indices[idx] * 72:sorted_indices[idx] * 72 + 72],
+            self.close_cost[sorted_indices[idx] * 72:sorted_indices[idx] * 72 + 72],
+            self.top_cost[sorted_indices[idx] * 72:sorted_indices[idx] * 72 + 72]]
+    action = [sum(item) for item in self.action[sorted_indices[idx] * 72:sorted_indices[idx] * 72 + 72]]
+    list = [sum(x) for x in chunked(self.reward_list, self.T + 1)]  ##一轮迭代的总奖励
+    top_list = [sum(x) for x in chunked(self.rw_topk, self.T + 1)]
+    close_cost = [sum(x) for x in chunked(self.rw_all_0, self.T + 1)]  ##一轮迭代的总奖励
+    open_cost = [sum(x) for x in chunked(self.rw_all_1, self.T + 1)]  ##一轮迭代的总奖励
+    if name is not None:
+        np.savetxt(
+            '实验结果/' + name + '.txt', [
+                [delay, energy, cost, action],
+                [smoothed_list, smoothed_open_cost, smoothed_close_cost, smoothed_top_list],
+                [list, open_cost, close_cost, top_list]],
+            delimiter=',', fmt='%s')
+    return delay,energy,cost,action

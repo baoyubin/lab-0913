@@ -4,4 +4,4 @@ class MapConfig:
         self.bounds = [121.46, 31.20, 121.54, 31.28]
         self.gripAc = 200
         self.params = tbd.area_to_params(self.bounds, accuracy=self.gripAc, method='rect')
-        self.taxi_path = '-2000/'
+        self.taxi_path = '-3100/'
