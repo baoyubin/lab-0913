@@ -4,6 +4,9 @@ import numpy as np
 import torch
 import torch.nn as nn
 
+from ReplayTree import ReplayTree
+
+
 ##https://github.com/MorvanZhou/Reinforcement-learning-with-tensorflow/tree/master/contents/5_Deep_Q_Network
 
 class Replaymemory:
@@ -78,11 +81,11 @@ class Dqn(nn.Module):
         obs_tensor = torch.as_tensor(obs, dtype=torch.float32)
         q_value = self(obs_tensor.unsqueeze(0))
         max_q_value = torch.argmax(input=q_value)
-        action = max_q_value.detach().item()
+        oraction = max_q_value.detach().item()
         #TODO 转二进制
-        action_bin = bin(action)[2:]
+        action_bin = bin(oraction)[2:]
         action = np.array(list(action_bin.rjust(10, '0')), dtype=np.int32)
-        return action
+        return action, oraction
 
 
 class Agent:
@@ -92,9 +95,9 @@ class Agent:
 
         self.GAMA = GAMA
         self.learning_race = learning_race
-       ## self.training_interval = 10
+         ## self.training_interval = 10
 
-        self.memo = Replaymemory(self.n_input, self.n_output)
+        self.memo = ReplayTree(2048)
         self.target_net = Dqn(self.n_input, self.n_output)
         self.online_net = Dqn(self.n_input, self.n_output)
         self.optimizer = torch.optim.Adam(self.online_net.parameters(), lr=self.learning_race)

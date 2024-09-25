@@ -5,7 +5,7 @@ import math
 from MapConfig import MapConfig
 from my_cost import Cost
 class Env:
-    def __init__(self, x, y, load_map, bus_map, my_plot, delay_Weight=0.4, idle_w=0.5, data_num=1):
+    def __init__(self, x, y, load_map, bus_map, my_plot, delay_Weight=0.6, idle_w=0.5, data_num=1):
         self.all_load = np.zeros(shape=(x * y), dtype=np.int32).reshape((y, -1))
         self.mapConfig = MapConfig()
         self.bus_load = [0] * 10
