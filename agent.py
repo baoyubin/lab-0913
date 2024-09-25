@@ -4,6 +4,9 @@ import numpy as np
 import torch
 import torch.nn as nn
 
+from DuelingDqn import DuelingNet
+
+
 ##https://github.com/MorvanZhou/Reinforcement-learning-with-tensorflow/tree/master/contents/5_Deep_Q_Network
 
 class Replaymemory:
@@ -95,6 +98,8 @@ class Agent:
        ## self.training_interval = 10
 
         self.memo = Replaymemory(self.n_input, self.n_output)
-        self.target_net = Dqn(self.n_input, self.n_output)
-        self.online_net = Dqn(self.n_input, self.n_output)
+        # self.target_net = Dqn(self.n_input, self.n_output)
+        # self.online_net = Dqn(self.n_input, self.n_output)
+        self.target_net = DuelingNet(self.n_input, self.n_output)
+        self.online_net = DuelingNet(self.n_input, self.n_output)
         self.optimizer = torch.optim.Adam(self.online_net.parameters(), lr=self.learning_race)
