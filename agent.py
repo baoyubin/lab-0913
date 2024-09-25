@@ -4,6 +4,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 
+from DuelingDqn import DuelingNet
 from ReplayTree import ReplayTree
 
 
@@ -99,6 +100,8 @@ class Agent:
          ## self.training_interval = 10
 
         self.memo = ReplayTree(2048)
-        self.target_net = Dqn(self.n_input, self.n_output)
-        self.online_net = Dqn(self.n_input, self.n_output)
+        # self.target_net = Dqn(self.n_input, self.n_output)
+        # self.online_net = Dqn(self.n_input, self.n_output)
+        self.target_net = DuelingNet(self.n_input, self.n_output)
+        self.online_net = DuelingNet(self.n_input, self.n_output)
         self.optimizer = torch.optim.Adam(self.online_net.parameters(), lr=self.learning_race)
