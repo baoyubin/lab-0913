@@ -37,7 +37,7 @@ class Env:
         self.ecdidle = 83
         self.busidle = 83
         self.opentime = 10
-        self.bus_bound = 6
+        self.bus_bound = 4
         self.x = x
         self.y = y
         self.T = 0
