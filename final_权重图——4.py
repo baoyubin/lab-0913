@@ -18,23 +18,25 @@ def plot_default(map, ylab='Reward', keepname = '1' ):
     plt.show()
 def plot_dou(delay, energy):
     fig, ax1 = plt.subplots(figsize=(10, 5))  # 可选：设置图表大小
-    ax1.set_ylabel('任务平均时延(ms)', color='blue')  # 设置时延轴的标签颜色
+    ax1.set_ylabel('任务平均时延(ms)', color='blue',fontsize=18)  # 设置时延轴的标签颜色
     ax1.plot(np.arange(len(delay)), delay, color='blue', label='时延,M=700',marker='>')  # 添加颜色和标签
 
     ax2 = ax1.twinx()  # 共享x轴创建第二个y轴
-    ax2.set_ylabel('总能耗(J)', color='red')  # 设置能耗轴的标签颜色
+    ax2.set_ylabel('总能耗(J)', color='red',fontsize=18)  # 设置能耗轴的标签颜色
     ax2.plot(np.arange(len(energy)), energy, color='red', label='能耗,M=700',marker='o')  # 添加颜色和标签
 
-    ax1.tick_params(axis='y', labelcolor='blue')  # 设置y轴标签颜色
-    ax2.tick_params(axis='y', labelcolor='red')  # 设置y轴标签颜色
+    ax1.tick_params(axis='y', labelcolor='blue',labelsize=16)  # 设置y轴标签颜色
+    ax2.tick_params(axis='y', labelcolor='red',labelsize=16)  # 设置y轴标签颜色
 
     lines, labels = ax1.get_legend_handles_labels()
     lines2, labels2 = ax2.get_legend_handles_labels()
-    ax2.legend(lines + lines2, labels + labels2, loc='right')
-    ax1.set_xlabel('时延权重')
-    plt.xticks([0, 1, 2, 3, 4, 5, 6, 7, 8], ['0.1', '0.2', '0.3', '0.4', '0.5', '0.6', '0.7', '0.8', '0.9'])
+    ax2.legend(lines + lines2, labels + labels2, loc='right', fontsize=18)
+    ax1.set_xlabel('时延权重', fontsize=18)
+    plt.xticks([0, 1, 2, 3, 4, 5, 6, 7, 8],
+               ['0.1', '0.2', '0.3', '0.4', '0.5', '0.6', '0.7', '0.8', '0.9'])
+    ax1.tick_params(axis='x', labelsize=16)  # 设置x轴刻度大小
     plt.rcParams['font.sans-serif'] = ['SimHei']  # 使用黑体字体
-    plt.rcParams['axes.unicode_minus'] = False  # 正确显示负号
+
     plt.savefig('权重合并.svg', format='svg', bbox_inches='tight')  # 保存图表，确保图例也被保存
     plt.show()
 
