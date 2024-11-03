@@ -99,7 +99,7 @@ class Agent:
         self.learning_race = learning_race
          ## self.training_interval = 10
 
-        self.memo = ReplayTree(2048)
+        self.memo = ReplayTree(10**5)
         # self.target_net = Dqn(self.n_input, self.n_output)
         # self.online_net = Dqn(self.n_input, self.n_output)
         self.target_net = DuelingNet(self.n_input, self.n_output)
