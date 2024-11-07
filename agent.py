@@ -86,6 +86,60 @@ class Dqn(nn.Module):
         return action
 
 
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+
+
+class Actor(nn.Module):
+    def __init__(self, n_states, n_actions, hidden_dim=256, init_w=3e-3):
+        super(Actor, self).__init__()
+        self.linear1 = nn.Linear(n_states, hidden_dim)
+        self.linear2 = nn.Linear(hidden_dim, hidden_dim)
+        self.linear3 = nn.Linear(hidden_dim, n_actions)
+
+        self.linear3.weight.data.uniform_(-init_w, init_w)
+        self.linear3.bias.data.uniform_(-init_w, init_w)
+
+    def forward(self, x):
+        x = F.relu(self.linear1(x))
+        x = F.relu(self.linear2(x))
+        x = torch.tanh(self.linear3(x))
+        return x
+
+    def act(self, state):
+        state = torch.FloatTensor(state).unsqueeze(0)
+        action = self(state)
+        bool_mask = action > 0
+        #
+        # # 然后使用布尔张量来创建一个新的张量，其中True被替换为1.0（或你想要的任何浮点值），False被替换为0.0
+        # # 这里我们直接转换为浮点类型，因为布尔张量在转换为浮点张量时会自动变为0.0和1.0
+        # action2_float = bool_mask.float()
+        #
+        # # 如果你需要整数类型的张量，可以进一步转换
+        action = action.int()
+        return action
+        # return action.detach().cpu().numpy()[0, 0]
+
+class Critic(nn.Module):
+    def __init__(self, n_states, n_actions, hidden_dim=256, init_w=3e-3):
+        super(Critic, self).__init__()
+
+        self.linear1 = nn.Linear(n_states + n_actions, hidden_dim)
+        self.linear2 = nn.Linear(hidden_dim, hidden_dim)
+        self.linear3 = nn.Linear(hidden_dim, 1)
+        # 随机初始化为较小的值
+        self.linear3.weight.data.uniform_(-init_w, init_w)
+        self.linear3.bias.data.uniform_(-init_w, init_w)
+
+    def forward(self, state, action):
+        # 按维数1拼接
+        x = torch.cat([state, action], 1)
+        x = F.relu(self.linear1(x))
+        x = F.relu(self.linear2(x))
+        x = self.linear3(x)
+        return x
+
 class Agent:
     def __init__(self, n_input, n_output, GAMA, learning_race):
         self.n_input = n_input
@@ -96,6 +150,21 @@ class Agent:
        ## self.training_interval = 10
 
         self.memo = Replaymemory(self.n_input, self.n_output)
-        self.target_net = Dqn(self.n_input, self.n_output)
-        self.online_net = Dqn(self.n_input, self.n_output)
-        self.optimizer = torch.optim.Adam(self.online_net.parameters(), lr=self.learning_race)
+        self.target_actor = Actor(self.n_input, self.n_output)
+        self.actor = Actor(self.n_input, self.n_output)
+        self.target_critic = Critic(self.n_input, self.n_output)
+        self.critic = Critic(self.n_input, self.n_output)
+
+        for target_param, param in zip(self.target_critic.parameters(), self.critic.parameters()):
+            target_param.data.copy_(param.data)
+        for target_param, param in zip(self.target_actor.parameters(), self.actor.parameters()):
+            target_param.data.copy_(param.data)
+        self.critic_optimizer = torch.optim.Adam(self.critic.parameters(), lr=self.learning_race)
+        self.actor_optimizer = torch.optim.Adam(self.actor.parameters(), lr=self.learning_race)
+    @torch.no_grad()
+    def predict_action(self, state):
+        ''' 用于预测，不需要计算梯度
+        '''
+        state = torch.FloatTensor(state).unsqueeze(0)
+        action = self.actor(state)
+        return action.cpu().numpy()[0, 0]
