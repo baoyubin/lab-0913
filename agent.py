@@ -11,7 +11,7 @@ class Replaymemory:
         self.n_s = n_s
         self.n_a = n_a
         self.bus_num = 10
-        self.MEMORY_SIZE = 2000
+        self.MEMORY_SIZE = 10**5
         self.BATCH_SIZE = 360
         #TODO
         self.all_s = np.empty(shape=(self.MEMORY_SIZE, self.n_s), dtype=np.int32) #TODO
@@ -104,13 +104,13 @@ class Actor(nn.Module):
     def forward(self, x):
         x = F.relu(self.linear1(x))
         x = F.relu(self.linear2(x))
-        x = torch.tanh(self.linear3(x))
+        x = torch.sigmoid(self.linear3(x))
         return x
 
     def act(self, state):
         state = torch.FloatTensor(state).unsqueeze(0)
         action = self(state)
-        bool_mask = action > 0
+        bool_mask = action > 0.5
         #
         # # 然后使用布尔张量来创建一个新的张量，其中True被替换为1.0（或你想要的任何浮点值），False被替换为0.0
         # # 这里我们直接转换为浮点类型，因为布尔张量在转换为浮点张量时会自动变为0.0和1.0
